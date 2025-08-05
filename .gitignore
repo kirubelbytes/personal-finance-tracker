@@ -1,0 +1,57 @@
+# Root-level .gitignore
+
+# Ignore backend node modules & env
+/backend/node_modules/
+/backend/.env
+
+# Ignore frontend node modules & env if any
+/frontend/node_modules/
+/frontend/.env
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# IDEs/editors
+.vscode/
+.idea/
+
+# npm/yarn lock files (optional, keep only if you want reproducibility)
+/frontend/package-lock.json
+/backend/package-lock.json
+
+
+# ===== Backend =====
+backend/node_modules/
+backend/.env
+backend/*.log
+backend/debug.log
+backend/database.sql
+
+# ===== Frontend =====
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/.vscode/
+frontend/.DS_Store
+frontend/*.log
+frontend/debug.log
+
+# ===== System Files =====
+*.log
+*.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Ignore local environment configs
+*.local
+
+# IDE
+.idea/
+.vscode/
