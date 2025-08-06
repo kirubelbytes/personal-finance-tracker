@@ -66,9 +66,32 @@ export const changePassword = async (req, res) => {
     }
 }
 
-export const updateUser = () => {
+export const updateUser = async(req, res) => {
     try {
-        
+        const {userId} = req.body.user;
+        const { firstName ,lastName, country, currency, contact } = req.body;
+        // we don't update the email
+        const userExist = await pool.query({
+            text : "SELECT * FROM tbluser WHERE id = $1",
+            values : [userId]
+        });
+        const user = userExist.rows[0];
+        if(!user) {
+            return res.status(404).json({
+                status : 'failed',
+                message : "User doesn't exist"
+            })
+        }
+        const updatedUser = await pool.query({
+            text : "UPDATE tbluser SET firstname = $1, lastname = $2, country = $3, currency =  $4, contact = $5 WHERE id = $6 RETURNING *",
+            values : [firstName, lastName, country, currency, contact, userId]
+        });
+        updatedUser.rows[0].password = undefined;
+        res.status(200).json({
+            status : 'Succuss',
+            message : "User updated successfully",
+            user : updatedUser.rows[0]
+        });
     } catch (error) {
         console.log(error);
         res.status(500).json({status : "failed", message: error.message})
