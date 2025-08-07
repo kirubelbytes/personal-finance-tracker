@@ -83,7 +83,7 @@ export const updateUser = async(req, res) => {
             })
         }
         const updatedUser = await pool.query({
-            text : "UPDATE tbluser SET firstname = $1, lastname = $2, country = $3, currency =  $4, contact = $5 WHERE id = $6 RETURNING *",
+            text : "UPDATE tbluser SET firstname = $1, lastname = $2, country = $3, currency =  $4, contact = $5, createdAt = CURRENT_TIMESTAMP WHERE id = $6 RETURNING *",
             values : [firstName, lastName, country, currency, contact, userId]
         });
         updatedUser.rows[0].password = undefined;
