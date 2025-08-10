@@ -8,15 +8,26 @@ const authMiddlewire = async(req, res, next) => {
     }
     const token = authHeader?.split(" ")[1]
 
+    // try {
+    //     const userToken = JWT.verify(token, process.env.JWT_SECRET);
+    //     req.body.user = {
+    //         userId : userToken.userId
+    //     }
+    //     next();
+    // } catch (error) {
+    //     console.log(error);
+    //     res.status(401).json({status : "Unauthorised", message : "Authentication failed"})
+    // }
     try {
-        const userToken = JWT.verify(token, process.env.JWT_SECRET);
-        req.body.user = {
-            userId : userToken.userId
-        }
-        next();
+    const userToken = JWT.verify(token, process.env.JWT_SECRET);
+    if (!req.body) req.body = {}; // ✅ Ensure req.body exists
+    req.body.user = {
+        userId: userToken.userId
+    }
+    next();
     } catch (error) {
         console.log(error);
-        res.status(401).json({status : "Unauthorised", message : "Authentication failed"})
+        res.status(401).json({ status: "Unauthorised", message: "Authentication failed" });
     }
 }
 

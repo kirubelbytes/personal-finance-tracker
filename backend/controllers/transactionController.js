@@ -1,20 +1,43 @@
 import express from "express"
 import pool from "../libs/dabatase.js";
+import { getMonthName } from "../libs/index.js";
 
 export const getTransaction = async(req, res) => {
     try {
+        
         const today = new Date();
         const _sevenDaysAgo = new Date(today);
         _sevenDaysAgo.setDate(today.getDate() - 7);
-        const sevenDaysAgo = _sevenDaysAgo.toISOString().split("T")[0];
-        const {df , dt, s} = req.query;
-        const {userId } = req.body.user;
-        const startDate = new Date(df || sevenDaysAgo);
-        const endDate = new Date(dt || new Date());
+        const sevenDaysAgo = _sevenDaysAgo.toISOString().split("T")[0]; // Fix here: added ()
+
+        const { df, dt, s } = req.query;
+        const { userId } = req.body.user;
+
+        const startDate = df ? new Date(df) : new Date(sevenDaysAgo);
+        const endDate = dt ? new Date(dt) : new Date();
+
+        // Optional: Validate startDate and endDate are valid dates
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return res.status(400).json({
+            status: "failed",
+            message: "Invalid date format in query parameters"
+        });
+        }
+
+        // Convert to ISO string with full timestamp for PostgreSQL
+        const startDateStr = startDate.toISOString();
+        const endDateStr = endDate.toISOString();
+
         const transaction = await pool.query({
-            text: "SELECT * FROM tbltransaction WHERE user_id = $1 AND createdAt BETWEEN $2 AND $3 AND (description ILIKE '%' || $4 || '%' OR status ILIKE '%' || $4 || '%' OR source ILIKE '%' || $4 || '%' ORDER BY id DESC)",
-            values : [userId, startDate, endDate, s ]
-        })
+        text: `SELECT * FROM tbltransaction 
+                WHERE user_id = $1 
+                AND createdAt BETWEEN $2 AND $3 
+                AND (description ILIKE '%' || $4 || '%' 
+                        OR status ILIKE '%' || $4 || '%' 
+                        OR source ILIKE '%' || $4 || '%') 
+                ORDER BY id DESC`,
+        values: [userId, startDateStr, endDateStr, s || ""]
+        });
         res.status(200).json({
             status :'success',
             data : transaction.rows
@@ -31,7 +54,74 @@ export const getTransaction = async(req, res) => {
 
 export const getDashboardInformation = async(req, res) => {
  try {
-        
+    const { userId } = req.body.user;
+    let totalIncome = 0;
+    let totalExpense = 0;
+    const transactionResult = await pool.query({
+        text: `
+            SELECT type, SUM(amount) AS totalAmount
+            FROM tbltransaction
+            WHERE user_id = $1
+            GROUP BY type
+            ORDER BY type
+        `,
+        values: [userId]
+        });
+
+    const transactions = transactionResult.rows;
+    transactions.forEach((transaction) => {
+        if(transaction.type === "income") {
+            totalIncome += transaction.totalamount;
+        } else {
+            totalExpense += transaction.totalamount;
+        }
+    })
+    const availableBalance = totalIncome - totalExpense;
+    // Aggregate transaction to sum by type and group by month
+    const year = new Date().getFullYear();
+    const start_date = new Date(year, 0, 1); //jan 1st of the year
+    const end_date =  new Date(year, 11, 31, 23, 59, 59);
+    const result = await pool.query({
+        text : "SELECT EXTRACT (MONTH FROM createdAt) as month , type, SUM(amount) as totalAmount FROM tbltransaction WHERE user_id = $1 AND createdAt BETWEEN $2 AND $3 GROUP BY EXTRACT (MONTH from createdAt), type",
+        values : [userId, start_date , end_date]
+    });
+          // Organaise Data
+    // const data = new Array(12).fill().map(_,index) => {
+    //     const monthData = result.rows.filter((item) => parseInt(item.month === index +1 ));
+    // }
+    const data = new Array(12).fill().map((_, index) => {
+        const monthData = result.rows.filter(
+            (item) => parseInt(item.month) === index + 1
+        );
+    const income = monthData.find((item) => item.type === "income")?.totalIncome || 0;
+    const expense = monthData.find((item) => item.type === "expense")?.totalExpense || 0;
+    return {
+        label: getMonthName(index),
+        income,
+        expense
+    }
+    });
+    // fetch last transaction 
+    const lastTransactionResult = await pool.query({
+        text : "SELECT * FROM tbltransaction WHERE user_id = $1 ORDER BY id DESC LIMIT 5",
+        values : [userId]
+    })
+    const lastTransaction = lastTransactionResult.rows;
+    // fetch last account
+    const lastAccountResult = await pool.query({
+        text : "SELECT * FROM tblaccount WHERE user_id = $1 ORDER BY id DESC LIMIT 4",
+        values : [userId]
+    })
+    const lastAccount = lastAccountResult.rows;
+    res.status(200).json({
+        status : 'success',
+        availableBalance,
+        totalIncome,
+        totalExpense,
+        chartData : data,
+        lastTransaction,
+        lastAccount
+    })
  } catch (error) {
     console.log(error);
     res.status(404).json({

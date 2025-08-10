@@ -7,7 +7,7 @@ const router = express.Router();
 router.get('/' ,authMiddlewire , getTransaction);
 router.get('/dashboard' ,authMiddlewire , getDashboardInformation);
 router.post('/add-transaction/:account_id' ,authMiddlewire , addTransaction);
-router.post('/transfer-money',authMiddlewire , transferMoneyToAccount);
+router.put('/transfer-money',authMiddlewire , transferMoneyToAccount);
 
 
 export default router;
