@@ -1,34 +1,49 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { Navigate, Outlet, Routes, Route } from "react-router-dom"
+import SignUp from "./pages/auth/Sign-up"
+import SignIn from "./pages/auth/Sign-in"
+import Settings from "./pages/Settings"
+import Dashboard from './pages/Dashboard'
+import AccountPage from './pages/Account-page'
+import Transactions from './pages/Transaction'
+import useStore from "./store/index.js"
+import { setAuthToken } from "./libs/apiCall.js"
+import { Toaster } from "sonner"
 
+const RootLayOut = () => {
+  // const { user } = useStore((state) => (state));
+  const user = useStore(state => state.user);
+  setAuthToken(user?.token || "");  
+  return (
+    !user ? (<Navigate to="sign-in" replace={true}/>) : (
+      <>
+       <div className="min-h-[cal(h-screen-100px)]">
+         <Outlet /> 
+       </div>
+      </>
+    )   
+  )
+};
 function App() {
-  const [count, setCount] = useState(0)
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <main>
+      <div className="w-full min-h-screen px-6 bg-gray-100 md:px-20 dark:bg-slate-900">
+        <Routes>
+          {/* Protected Routes */}
+          <Route element={<RootLayOut/>}>
+            <Route path="/" element= { <Navigate to="/overview"/>} />
+            <Route path="/overview" element={<Dashboard/>}/>
+            <Route path="/transaction" element={<Transactions/>}/>
+            <Route path="/settings" element={<Settings/>}/>
+            <Route path="/account" element={<AccountPage/>}/>
+          </Route>
+          {/* Public Routes */}
+          <Route path="/sign-up" element={<SignUp/>}/>
+          <Route path="/sign-in" element={<SignIn/>}/>
+        </Routes>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+      <Toaster richColors position="top-center"/>
+    </main>
   )
 }
 
