@@ -3,7 +3,6 @@ import * as z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod";
 import  useStore  from '../../store/index.js';
 import { useForm } from "react-hook-form"
-import { useNavigate } from 'react-router-dom';
 import {Card, CardContent, CardFooter, CardHeader, CardTitle} from "../../components/ui/card"
 import { SocialAuth } from '../../components/ui/social-auth.jsx';
 import Separetor from '../../components/ui/separetor.jsx';
@@ -11,15 +10,20 @@ import Input from "../../components/ui/input.jsx"
 import { BiLoader } from "react-icons/bi"
 import { Button } from '../../components/ui/button.jsx';
 import { Link } from "react-router-dom"
+import { toast } from 'sonner';
+import api from '../../libs/apiCall.js';
+import { useNavigate } from 'react-router-dom';
 
 const RegisterSchema = z.object({
   email : z 
     .string({required_error : "Email is required"})
     .email({message : "Invalid email address"}),
-    firstName : z.string({required_error : "Name is required"}).min(3, "Name is required"),
-    password: z 
-      .string({required_error : "Password is required"})
-      .min(1, "Password is required"),
+  firstName : z
+    .string({required_error : "Name is required"})
+    .min(3, "Name is required"),
+  password: z 
+    .string({required_error : "Password is required"})
+    .min(8, "Password is must contain atleast 8 character "),
 });
 
 
@@ -28,7 +32,7 @@ const SignUp = () => {
   const {
     register,
     handleSubmit,
-    formState : {error}
+    formState : {errors}
   } = useForm({
     resolver: zodResolver(RegisterSchema),
   })
@@ -40,8 +44,22 @@ const SignUp = () => {
   },[user])
 
   const onSubmit = async(data) => {
-    console.log(data);
-  }
+    try {
+      setLoading(true);
+      const {data : res} = await api.post("/auth/sign-up", data);
+      if(res?.user) {
+        toast.success("Account created successfully. You can now login.");
+        setTimeout(() => {
+          navigate("/sign-in")
+        }, 1500);
+      }
+    } catch (error) {
+      console.log(error);
+      toast.error(error?.response?.data?.message || error.message);
+    } finally {
+      setLoading(false)
+    }
+  }  
 
   return (
     <div className='flex items-center justify-center w-full min-h-screen py-10'>
@@ -62,10 +80,10 @@ const SignUp = () => {
                   disabled={loading}
                   id="firstName"
                   label="Name"
-                  name="firsName"
+                  name="firstName"
                   type="text"
                   placeholder="John Smith"
-                  error={error?.firstName?.message}
+                  error={errors?.firstName?.message}
                   {...register("firstName")}
                   className="text-sm border dark:border-gray-800 dark:bg-transparent dark:placeholder:text-text-gray700 dark:text-gray-400 dark:outline-none"
                  />
@@ -76,7 +94,7 @@ const SignUp = () => {
                   name="email"
                   type="email"
                   placeholder="you@example.com"
-                  error={error?.email?.message}
+                  error={errors?.email?.message}
                   {...register("email")}
                   className="text-sm border dark:border-gray-800 dark:bg-transparent dark:placeholder:text-text-gray700 dark:text-gray-400 dark:outline-none"
                  />
@@ -87,7 +105,7 @@ const SignUp = () => {
                   name="password"
                   type="password"
                   placeholder="Your Password"
-                  error={error?.password?.message}
+                  error={errors?.password?.message}
                   {...register("password")}
                   className="text-sm border dark:border-gray-800 dark:bg-transparent dark:placeholder:text-text-gray700 dark:text-gray-400 dark:outline-none"
                  />
